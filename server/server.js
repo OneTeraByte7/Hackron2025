@@ -5,16 +5,33 @@ import { parse } from 'csv-parse/sync';
 import brain from 'brain.js';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config(); // For environment variables
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));  // Serve static files
+
+// Serve static files from public folder (e.g., images, uploads)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, 'client', 'build')));
+
+// Your API routes (backend logic) here
+// Example:
+// app.use('/api/users', userRoutes);
+
+// Fallback route for React (for SPA routing)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+});
 
 // Load CSV Data
 const salesData = fs.readFileSync(path.join(__dirname, './data/sales_data.csv'), 'utf8');
@@ -56,7 +73,8 @@ app.get('/api/products', (req, res) => {
 
 // Merge data for neural network
 const mergedData = salesRecords.map(sale => {
-    const inventory = inventoryRecords.find(item => item['Product Name'] === sale['Product Name']);
+    const product = productRecords.find(item => item['product_name'] === sale['product_name']);
+    const inventory = inventoryRecords.find(item => item['product_name'] === sale['product_name']);
     const waste = wasteRecords.find(item => item['Product Name'] === sale['Product Name']);
     const recycling = recyclingRecords.find(item => item['Sale Date'] === sale['Sale Date']);
     return { ...sale, ...inventory, ...waste, ...recycling };
@@ -157,7 +175,12 @@ const salesDataAPI = [
 
 app.get('/data', (req, res) => res.json(salesDataAPI));
 
-// Start the server
-app.listen(port, () => {
-    console.log(`Server is running at http://localhost:${port}`);
+// Health check route
+app.get('/', (req, res) => {
+    res.send('Server is up and running!');
+});
+
+// Start the server (Deployment Ready)
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server is running on port ${port}`);
 });
