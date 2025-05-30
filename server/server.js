@@ -19,10 +19,11 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static files from public folder (e.g., images, uploads)
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../client/build')));
 
-// Serve static files from React build
-app.use(express.static(path.join(__dirname, 'client', 'build')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+});
 
 // Your API routes (backend logic) here
 // Example:
