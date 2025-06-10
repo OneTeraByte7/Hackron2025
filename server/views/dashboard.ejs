@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales, Demand, Supply, and Waste Management Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            text-align: center;
+        }
+        .graph-container {
+            width: 80%;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sales, Demand, Supply, and Waste Management Dashboard</h1>
+    <div class="graph-container">
+        <div id="sales-graph"></div>
+        <div id="waste-graph"></div>
+        <div id="recycling-graph"></div>
+        <div id="inventory-graph"></div>
+    </div>
+    <script>
+        // Define the JSON data as JavaScript variables
+        const figSalesData = JSON.parse('<%- JSON.stringify(figSales) %>');
+        const figWasteData = JSON.parse('<%- JSON.stringify(figWaste) %>');
+        const figRecyclingData = JSON.parse('<%- JSON.stringify(figRecycling) %>');
+        const figInventoryData = JSON.parse('<%- JSON.stringify(figInventory) %>');
+
+        // Render the plots using Plotly
+        Plotly.newPlot('sales-graph', figSalesData.data, figSalesData.layout);
+        Plotly.newPlot('waste-graph', figWasteData.data, figWasteData.layout);
+        Plotly.newPlot('recycling-graph', figRecyclingData.data, figRecyclingData.layout);
+        Plotly.newPlot('inventory-graph', figInventoryData.data, figInventoryData.layout);
+    </script>
+</body>
+</html>

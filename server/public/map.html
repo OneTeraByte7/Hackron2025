@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dark Stores Waste Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.css" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+    body {
+      background-color: #2c2c2c;
+      color: #ffffff;
+    }
+    .leaflet-control {
+      background-color: #333333 !important;
+      border: 1px solid #555555 !important;
+    }
+    .leaflet-popup-content-wrapper {
+      background: #333333 !important;
+      color: #ffffff !important;
+    }
+    .leaflet-popup-tip-container {
+      display: none;
+    }
+    #chartContainer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      height: 300px;
+      background: #ffffff;
+      border: 1px solid #555555;
+      padding: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="chartContainer">
+    <canvas id="wasteChart"></canvas>
+  </div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.5.1/chart.min.js"></script>
+  <script>
+    var map = L.map('map').setView([18.5204, 73.8567], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var darkStores = [
+      { "name": "Store A", "lat": 18.5204, "lng": 73.8567, "waste": { "organic": 30, "recyclable": 40, "nonRecyclable": 30 } },
+      { "name": "Store B", "lat": 18.5304, "lng": 73.8467, "waste": { "organic": 20, "recyclable": 50, "nonRecyclable": 30 } },
+      { "name": "Store C", "lat": 18.5404, "lng": 73.8367, "waste": { "organic": 25, "recyclable": 35, "nonRecyclable": 40 } },
+      { "name": "Store D", "lat": 18.5504, "lng": 73.8267, "waste": { "organic": 10, "recyclable": 60, "nonRecyclable": 30 } },
+      { "name": "Store E", "lat": 18.5604, "lng": 73.8167, "waste": { "organic": 40, "recyclable": 30, "nonRecyclable": 30 } }
+    ];
+
+    function getMarkerColor() {
+      return 'blue';
+    }
+
+    var ctx = document.getElementById('wasteChart').getContext('2d');
+    var wasteChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: ['Organic', 'Recyclable', 'Non-Recyclable'],
+        datasets: [{
+          label: 'Waste Types',
+          data: [0, 0, 0],
+          backgroundColor: ['green', 'blue', 'red']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    function updateChartData(wasteData) {
+      wasteChart.data.datasets[0].data = [wasteData.organic, wasteData.recyclable, wasteData.nonRecyclable];
+      wasteChart.update();
+    }
+
+    darkStores.forEach(function(store) {
+      var marker = L.circleMarker([store.lat, store.lng], {
+        color: getMarkerColor(),
+        radius: 8
+      }).addTo(map);
+
+      marker.bindPopup(`<b>${store.name}</b><br>Waste: Organic (${store.waste.organic}%), Recyclable (${store.waste.recyclable}%), Non-Recyclable (${store.waste.nonRecyclable}%)`);
+      
+      marker.on('click', function() {
+        console.log('Marker clicked:', store.name);
+        updateChartData(store.waste);
+        document.getElementById('chartContainer').style.display = 'block';
+      });
+
+      marker.on('mouseout', function() {
+        document.getElementById('chartContainer').style.display = 'none';
+      });
+    });
+  </script>
+</body>
+</html>
