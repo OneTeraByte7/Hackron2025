@@ -1,6 +1,6 @@
 # 🗑️ Waste Management Automation in Dark Stores
 
-**Problem Statement by Blinkit**
+**Problem Statement by Blinkit to solve Real World Problems**
 
 ---
 
