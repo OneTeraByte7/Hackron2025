@@ -1,4 +1,5 @@
 # 🗑️ Waste Management Automation in Dark Stores
+<img width="1024" height="361" alt="image" src="https://github.com/user-attachments/assets/223b98ee-5162-42c4-b689-4eee1ec14710" />
 
 **Problem Statement by Blinkit to solve Real World Problems**
 
