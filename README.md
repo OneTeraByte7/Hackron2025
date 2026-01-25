@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🗑️ Waste Management Automation for Dark Stores
 
 ![Hackron 2025](https://img.shields.io/badge/Techathon-2025-blue.svg) ![Status](https://img.shields.io/badge/Status-Completed-success.svg)
@@ -32,55 +33,96 @@
 - Node.js with Express.js
 - MongoDB for database storage
 - Socket.io for real-time updates
+# 🗑️ Waste Management Automation for Dark Stores
 
-### 🤖 AI & Automation:
-- TensorFlow.js for waste classification
-- Python (Flask) for predictive analytics
-- OpenCV for image processing
+![Hackron 2025](https://img.shields.io/badge/Techathon-2025-blue.svg) ![Status](https://img.shields.io/badge/Status-Completed-success.svg)
 
-## 🔧 Installation & Setup
-1. **Clone the Repository**
-   ```sh
-   git clone https://github.com/your-username/waste-mgmt-darkstores.git
-   cd waste-mgmt-darkstores
-   ```
-2. **Install Dependencies**
-   ```sh
-   npm install  # Install frontend dependencies
-   cd server && npm install  # Install backend dependencies
-   ```
-3. **Run the Application**
-   ```sh
-   cd client && npm start  # Start frontend
-   cd server && node server.js  # Start backend
-   ```
+<img width="1024" height="361" alt="banner" src="https://github.com/user-attachments/assets/223b98ee-5162-42c4-b689-4eee1ec14710" />
+
+## 🚀 Project Overview
+
+This repository contains an AI-powered web application that automates waste classification, tracking, and decision-making for dark stores (micro-fulfillment centers). The platform combines rule-based shelf-life classification, machine learning insights, and real-time dashboards to reduce food wastage and improve operational efficiency.
+
+## 🎯 Key Objectives
+
+- 📦 Minimize expired goods using predictive classification
+- ♻️ Improve sustainability through waste identification and separation
+- 📈 Use data & AI to guide restocking and clearance decisions
+- 🧭 Enable store-wise performance tracking with visual dashboards
+
+## 🎯 Core Features
+
+- 🚦 Smart Shelf-Life Classification (Red / Yellow / Green)
+- 🗺️ Waste Generation Maps with store heatmaps
+- 📦 Real-time inventory monitoring and expiry alerts
+- 🤖 AI-powered insights for demand/expiry correlation and clearance recommendations
+- 📊 Admin dashboards, reports, and sustainability scoring
+
+## 🛠️ Tech Stack
+
+- Frontend: React.js, Tailwind CSS, Chart.js / Plotly
+- Backend: Node.js + Express (API), Python + Flask (ML services)
+- Database: MongoDB or PostgreSQL
+- AI: TensorFlow / PyTorch, OpenCV for image processing
+- Real-time: Socket.io / MQTT for IoT integration
+
+## 🔧 Installation & Quick Start
+
+1. Clone the repository
+```bash
+git clone https://github.com/OneTeraByte7/Hackron2025.git
+cd Hackron2025
+```
+2. Install server deps
+```bash
+cd server
+npm install
+pip install -r requirements.txt
+```
+3. Install client deps and start
+```bash
+cd ../client
+npm install
+npm start
+```
+4. Start the backend
+```bash
+cd ../server
+node server.js
+```
 
 ## 📊 System Architecture
 ```mermaid
 graph TD;
-  User-->Frontend;
-  Frontend-->|API Calls|Backend;
-  Backend-->|Database Requests|MongoDB;
-  Backend-->|ML Processing|Python-Server;
-  Backend-->|IoT Communication|MQTT-Broker;
+   User-->Frontend;
+   Frontend-->|API Calls|Backend;
+   Backend-->|Database Requests|Database[(MongoDB/Postgres)];
+   Backend-->|ML Processing|MLServer[Python ML Services];
+   Backend-->|IoT Communication|MQTT[MQTT Broker];
+```
 
+## 🖥️ Example Workflows
+
+- Daily shelf-life tagging and database update
+```bash
+python server/classify_products.py --store_id=store_102
+python server/update_inventory_tags.py
+python server/run_ai_insights.py --store_id=store_102
+curl -X POST http://localhost:5000/refresh-dashboard
 ```
 
 ## 🎥 Demo & Screenshots
-📌 **Screenshots:**
-- Dashboard View
-![Screenshot 2025-03-06 074731](https://github.com/user-attachments/assets/b2e8f028-fe9f-4604-bef2-6116a4161eba)
-![Screenshot 2025-03-06 074839](https://github.com/user-attachments/assets/8595700f-90cd-42a7-bede-1b8e49989037)
 
-- Waste Classification UI
-![Screenshot 2025-03-06 074901](https://github.com/user-attachments/assets/85c23e65-6878-40c4-8183-b1ad6ec750f3)
-![image](https://github.com/user-attachments/assets/d1147fac-baac-498a-9304-8eb962e6ce93)
+Screenshots and demo assets are stored in the repository attachments and build artifacts in `client/build`.
 
+## 📅 Future Enhancements
 
-- Analytics Report
-![image](https://github.com/user-attachments/assets/eddc6740-5bb4-4c19-a217-70b85b9a3a5e)
-![image](https://github.com/user-attachments/assets/452a3087-d711-48f4-a14a-86070227851d)
-![image](https://github.com/user-attachments/assets/af4a6b47-a620-4eee-80e9-b4f8f3a7ede1)
-![image](https://github.com/user-attachments/assets/bc447408-0bba-4c46-979a-537d8123eedb)
-![image](https://github.com/user-attachments/assets/8eb88215-1f8c-4f79-91f9-4824503657d7)
+- Integration with live ordering APIs (e.g., Blinkit)
+- Mobile app for on-site tagging
+- Auto-schedule waste pickups based on volume thresholds
+- Notifications and automated clearance campaigns
+
+---
+
+If you'd like, I can stage and commit this resolved [README.md](README.md) for you and finish the merge. See next steps below.
 
