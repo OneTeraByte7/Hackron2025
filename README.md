@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 🗑️ Waste Management Automation for Dark Stores
 
 ![Hackron 2025](https://img.shields.io/badge/Techathon-2025-blue.svg) ![Status](https://img.shields.io/badge/Status-Completed-success.svg)
