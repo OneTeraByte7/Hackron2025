@@ -49,7 +49,7 @@ const ExpiryPredictor = () => {
                     />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-white mb-2">Manufacturing Date:</label>
+                    <label className="block text-white mb-2">Manufacturing Date of the Product:</label>
                     <input
                         type="date"
                         value={manufacturingDate}
@@ -58,7 +58,7 @@ const ExpiryPredictor = () => {
                     />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-white mb-2">Expiry Date:</label>
+                    <label className="block text-white mb-2">Expiry Date of the Product:</label>
                     <input
                         type="date"
                         value={expiryDate}
