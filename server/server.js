@@ -7,6 +7,8 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { spawn } from 'child_process';
+import http from 'http';
+import https from 'https';
 
 dotenv.config();
 
@@ -230,9 +232,48 @@ app.get('/api/forecasts/latest', async (req, res) => {
   try {
     const qs = new URLSearchParams(req.query).toString();
     const url = `http://127.0.0.1:${ML_PORT}/api/forecasts/latest?${qs}`;
+    // try using global fetch, fall back to http/https request if unavailable
+    async function doFetch(u) {
+      try {
+        if (typeof fetch === 'function') return await fetch(u);
+      } catch (e) {
+        // continue to http fallback
+      }
+      return await new Promise((resolve, reject) => {
+        try {
+          const parsed = new URL(u);
+          const lib = parsed.protocol === 'https:' ? https : http;
+          const opts = {
+            hostname: parsed.hostname,
+            port: parsed.port,
+            path: parsed.pathname + (parsed.search || ''),
+            method: 'GET',
+            headers: {}
+          };
+          const r = lib.request(opts, (resp) => {
+            let data = '';
+            resp.setEncoding('utf8');
+            resp.on('data', chunk => data += chunk);
+            resp.on('end', () => {
+              const headersObj = {};
+              for (const [k, v] of Object.entries(resp.headers)) headersObj[k.toLowerCase()] = Array.isArray(v) ? v.join(',') : v;
+              resolve({
+                ok: resp.statusCode >= 200 && resp.statusCode < 300,
+                status: resp.statusCode,
+                text: async () => data,
+                headers: { get: (k) => headersObj[k.toLowerCase()] }
+              });
+            });
+          });
+          r.on('error', (err) => reject(err));
+          r.end();
+        } catch (err) { reject(err); }
+      });
+    }
+
     let resp;
     try {
-      resp = await fetch(url);
+      resp = await doFetch(url);
       const body = await resp.text();
       const contentType = resp.headers.get('content-type') || 'application/json';
       // If Python returned 200, forward it
@@ -245,7 +286,7 @@ app.get('/api/forecasts/latest', async (req, res) => {
       spawnPython();
       await new Promise(r => setTimeout(r, 700));
       try {
-        resp = await fetch(url);
+        resp = await doFetch(url);
         const body = await resp.text();
         const contentType = resp.headers.get('content-type') || 'application/json';
         if (resp.ok) return res.status(resp.status).type(contentType).send(body);
@@ -279,14 +320,15 @@ app.get('/api/forecasts/save', async (req, res) => {
   try {
     const qs = new URLSearchParams(req.query).toString();
     const url = `http://127.0.0.1:${ML_PORT}/api/forecasts/save?${qs}`;
+    // use doFetch fallback
     let resp;
     try {
-      resp = await fetch(url);
+      resp = await doFetch(url);
     } catch (err) {
       console.error('Initial fetch to Python API failed:', err.message || err);
       spawnPython();
       await new Promise(r => setTimeout(r, 700));
-      resp = await fetch(url);
+      resp = await doFetch(url);
     }
     const body = await resp.text();
     const contentType = resp.headers.get('content-type') || 'application/json';
@@ -303,12 +345,12 @@ app.get('/api/forecast', async (req, res) => {
     const url = `http://127.0.0.1:${ML_PORT}/api/forecast?${qs}`;
     let resp;
     try {
-      resp = await fetch(url);
+      resp = await doFetch(url);
     } catch (err) {
       console.error('Initial fetch to Python API failed:', err.message || err);
       spawnPython();
       await new Promise(r => setTimeout(r, 700));
-      resp = await fetch(url);
+      resp = await doFetch(url);
     }
     const body = await resp.text();
     const contentType = resp.headers.get('content-type') || 'application/json';
@@ -342,30 +384,16 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-// Launch the Python ML API alongside the Node server
-const pythonExec = process.env.PYTHON || 'python';
-try {
-  const py = spawn(pythonExec, ['flask_api.py'], {
-    cwd: __dirname,
-    env: { ...process.env, ML_API_PORT: process.env.ML_API_PORT || '6000' },
-    stdio: 'inherit',
-  });
+// Ensure child Python is cleaned up on exit
+const cleanup = () => {
+  try { if (pyProcess && !pyProcess.killed) pyProcess.kill(); } catch (e) { }
+};
+process.on('exit', cleanup);
+process.on('SIGINT', () => { cleanup(); process.exit(); });
+process.on('SIGTERM', () => { cleanup(); process.exit(); });
 
-  // Ensure child process is killed when the Node process exits
-  const cleanup = () => {
-    try { py.kill(); } catch (e) {}
-  };
-  process.on('exit', cleanup);
-  process.on('SIGINT', () => { cleanup(); process.exit(); });
-  process.on('SIGTERM', () => { cleanup(); process.exit(); });
-
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Server is running on port ${port}`);
-    console.log(`Spawned Python ML API (PID: ${py.pid}) on port ${process.env.ML_API_PORT || '6000'}`);
-  });
-} catch (err) {
-  console.error('Failed to start Python ML API:', err);
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Server is running on port ${port} (no Python API)`);
-  });
-}
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on port ${port}`);
+  if (pyProcess && !pyProcess.killed) console.log(`Python ML API (PID: ${pyProcess.pid}) on port ${ML_PORT}`);
+  else console.log('Python ML API not running');
+});
