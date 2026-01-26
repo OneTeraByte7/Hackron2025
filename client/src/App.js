@@ -12,6 +12,7 @@ import MapView from './components/map';
 import WasteChart from './components/waste'; 
 import ExpiryPredictor from './components/shelflife';
 import Phase from './components/phase';
+import DemandForecast from './components/demandForecast';
 
 function PrivateRoute({ isAuthenticated }) {
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
@@ -40,6 +41,7 @@ function App() {
             <Route path="/garbage" element={<WasteChart />} />
             <Route path="/expiry" element={<ExpiryPredictor />} />
             <Route path="/allphase" element={<Phase />} />
+            <Route path="/demand" element={<DemandForecast product={'Milk'} />} />
             <Route path="/upload" element={<Upload />} />
             <Route path="/product" element={<Products />} />
           </Route>
