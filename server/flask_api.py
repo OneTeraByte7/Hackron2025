@@ -31,6 +31,37 @@ def _safe_name(name):
     return ''.join(c if c.isalnum() else '_' for c in name)
 
 
+def _normalize(name):
+    # lowercase and keep only alphanumeric for fuzzy matching
+    return ''.join(c.lower() for c in name if c.isalnum())
+
+
+def _find_forecast_file(product_name):
+    """Return path to a saved forecast file that best matches product_name, or None."""
+    target = _normalize(product_name)
+    files = [f for f in os.listdir(FORECASTS_DIR) if f.startswith('forecast_') and f.endswith('.json')]
+    # exact safe-name match first
+    exact = f"forecast_{_safe_name(product_name)}.json"
+    if exact in files:
+        return os.path.join(FORECASTS_DIR, exact)
+
+    # try substring matching on normalized names
+    candidates = []
+    for fn in files:
+        base = fn.replace('forecast_', '').replace('.json', '')
+        norm = _normalize(base)
+        # if target appears in candidate or candidate appears in target, it's a match
+        if target in norm or norm in target:
+            candidates.append((fn, norm))
+
+    if not candidates:
+        return None
+
+    # prefer shortest candidate (more specific) or first match
+    candidates.sort(key=lambda x: len(x[1]))
+    return os.path.join(FORECASTS_DIR, candidates[0][0])
+
+
 @app.route('/api/forecasts/save')
 def save_forecast():
     product = request.args.get('product')
@@ -55,9 +86,9 @@ def latest_forecast():
     product = request.args.get('product')
     if not product:
         return jsonify({'error': 'missing_parameter', 'message': 'Please provide ?product=PRODUCT_NAME'}), 400
-    fname = f"forecast_{_safe_name(product)}.json"
-    path = os.path.join(FORECASTS_DIR, fname)
-    if not os.path.exists(path):
+    # try to find a matching saved forecast file robustly
+    path = _find_forecast_file(product)
+    if not path or not os.path.exists(path):
         return jsonify({'error': 'not_found', 'message': 'No saved forecast for this product'}), 404
     with open(path, 'r', encoding='utf8') as f:
         data = json.load(f)

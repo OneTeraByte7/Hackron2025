@@ -2,204 +2,183 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Plot from 'react-plotly.js';
 import axios from 'axios';
 
-const DemandForecast = ({ product: initialProduct }) => {
+const NiceBadge = ({ children, className }) => (
+  <span className={`text-xs inline-block px-2 py-0.5 rounded-full bg-indigo-600 text-white ${className || ''}`}>{children}</span>
+);
+
+export default function DemandForecast() {
   const [products, setProducts] = useState([]);
-  const [search, setSearch] = useState('');
-  const [product, setProduct] = useState(initialProduct || 'Milk');
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(null);
   const [forecast, setForecast] = useState([]);
   const [allForecasts, setAllForecasts] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [modelPath, setModelPath] = useState(null);
 
   useEffect(() => {
-    // fetch product list
+    let mounted = true;
     axios.get('/api/products')
       .then(res => {
-        const all = [];
-        ['red', 'yellow', 'green'].forEach(k => {
-          const arr = res.data[k] || [];
-          arr.forEach(item => {
+        const list = [];
+        ['red','yellow','green'].forEach(k => {
+          (res.data[k]||[]).forEach(item => {
             const name = item._displayName || item.product_name || item['Product Name'] || item.product || item.product_id;
-            const has_history = !!item.has_history;
-            if (name && !all.find(x => x.name === name)) all.push({ name, has_history });
+            if (!name) return;
+            // keep only items with saved forecasts
+            if (item.has_forecast) list.push({ name, tag: item.tag || 'unknown' });
           });
         });
-        // keep only products that have saved forecasts (prediction files) for the dropdown
-        // merge has_forecast flag into our items
-        const merged = all.map(a => {
-          // find original record to get has_forecast flag
-          const lookup = [...(res.data.red||[]), ...(res.data.yellow||[]), ...(res.data.green||[])].find(i => (i._displayName || i.product_name || i['Product Name'] || i.product || i.product_id) === a.name);
-          return { ...a, has_forecast: !!(lookup && lookup.has_forecast) };
-        });
-        const withForecast = merged.filter(x => x.has_forecast);
-        setProducts(withForecast);
-        if (!initialProduct && withForecast.length) setProduct(withForecast[0].name);
+        // unique and sorted
+        const uniq = Array.from(new Map(list.map(i => [i.name, i])).values()).sort((a,b)=>a.name.localeCompare(b.name));
+        if (mounted) {
+          setProducts(uniq);
+          // set default selected only if not already selected (functional update avoids referencing `selected`)
+          if (uniq.length) setSelected(prev => prev || uniq[0].name);
+        }
       })
       .catch(() => {});
-  }, [initialProduct]);
+    return () => { mounted = false; };
+  }, []);
 
-  const loadForecast = (p) => {
+  useEffect(() => {
+    if (!selected) return;
     setLoading(true);
     setError(null);
-    axios.get(`/api/forecasts/latest?product=${encodeURIComponent(p)}`)
+    axios.get(`/api/forecasts/latest?product=${encodeURIComponent(selected)}`)
       .then(res => {
         setForecast(res.data.forecast || []);
-        setModelPath(res.data.model_path || null);
         setLoading(false);
       })
       .catch(err => {
         setError(err.response?.data || err.message);
         setForecast([]);
-        setModelPath(null);
         setLoading(false);
       });
-  };
+  }, [selected]);
 
-  useEffect(() => {
-    if (product) loadForecast(product);
-  }, [product]);
+  const filtered = useMemo(() => {
+    const q = (query||'').trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(p => p.name.toLowerCase().includes(q));
+  }, [products, query]);
 
-  const handleSave = () => {
-    if (!product) return;
+  const handleLoadAll = (days=7) => {
     setLoading(true);
-    axios.get(`/api/forecasts/save?product=${encodeURIComponent(product)}`)
-      .then(() => loadForecast(product))
-      .catch(err => { setError(err.response?.data || err.message); setLoading(false); });
+    axios.get(`/api/forecasts/all?days=${days}`)
+      .then(res => { setAllForecasts(res.data || {}); setLoading(false); })
+      .catch(err => { setError(err.response?.data || err.message); setAllForecasts(null); setLoading(false); });
   };
 
-  const loadAll = (days = 7) => {
-    setLoading(true);
-    setError(null);
-    axios.get(`/api/forecasts/all?days=${encodeURIComponent(days)}`)
-      .then(res => {
-        setAllForecasts(res.data || {});
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.response?.data || err.message);
-        setAllForecasts(null);
-        setLoading(false);
-      });
-  };
-
-  const filteredProducts = useMemo(() => {
-    if (!products || !products.length) return [];
-    const q = String(search || '').trim().toLowerCase();
-    return products.filter(p => {
-      if (!q) return true;
-      return p.name.toLowerCase().includes(q);
-    });
-  }, [products, search]);
-
-  const dates = forecast.map(f => f.date);
-  const preds = forecast.map(f => f.predicted);
+  const dates = forecast.map(f=>f.date);
+  const preds = forecast.map(f=>f.predicted);
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-3">
+    <div className="w-full bg-[#071022] min-h-screen text-gray-100">
+      <div className="p-6 max-w-6xl mx-auto">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Demand Forecast</h2>
-          <div className="text-sm text-gray-400">Select a product to view short-term demand predictions</div>
+          <h1 className="text-3xl font-bold text-white">Demand Forecast</h1>
+          <p className="text-sm text-gray-300">Short-term demand predictions — pick a product to inspect or load all forecasts.</p>
         </div>
-
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <div className="flex items-center bg-gray-800 rounded px-2 py-1 gap-2">
-            <input
-              placeholder="Search products..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="bg-transparent text-white placeholder-gray-500 outline-none w-40 sm:w-60"
-            />
-            
-          </div>
-
-          <select value={product} onChange={e => setProduct(e.target.value)} className="px-3 py-2 rounded bg-gray-800 text-white">
-            {products.length === 0 ? (
-              <option>Loading products...</option>
-            ) : filteredProducts.length === 0 ? (
-              <option disabled>No products match</option>
-            ) : (
-              filteredProducts.map(p => (
-                <option key={p.name} value={p.name} disabled={!p.has_history}>
-                  {p.name}{!p.has_history ? ' (no history)' : ''}
-                </option>
-              ))
-            )}
-          </select>
-
-          <div className="flex items-center gap-2">
-            <button onClick={() => loadForecast(product)} disabled={loading || !product} className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600">Refresh</button>
-            <button onClick={handleSave} disabled={loading || !product} className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
-            <button onClick={() => loadAll(7)} disabled={loading} className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Load All</button>
-          </div>
+        <div className="flex items-center gap-3">
+          <button onClick={()=>handleLoadAll(7)} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Load All</button>
+          <button onClick={()=>{ setSelected(null); setForecast([]); setAllForecasts(null); }} className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600">Clear</button>
         </div>
       </div>
 
-      <div className="bg-gray-800 text-white rounded shadow p-4">
-        {loading && <div className="mb-2">Loading...</div>}
-        {error && <div className="text-red-400 mb-2">Error: {JSON.stringify(error)}</div>}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2 bg-gray-900 p-4 rounded">
-            <Plot
-              data={[{ x: dates, y: preds, type: 'scatter', mode: 'lines+markers', marker: { color: '#60a5fa' }, line: { shape: 'spline' } }]}
-              layout={{
-                paper_bgcolor: '#0f172a',
-                plot_bgcolor: '#0f172a',
-                font: { color: '#fff' },
-                title: { text: `${product} — Next ${forecast.length} days` },
-                xaxis: { title: 'Date' },
-                yaxis: { title: 'Predicted Quantity' }
-              }}
-              style={{ width: '100%', height: '320px' }}
-            />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <aside className="col-span-1 bg-gray-900/90 rounded p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search products..." className="flex-1 px-3 py-2 bg-gray-800 rounded text-white outline-none placeholder-gray-400" />
+            <NiceBadge>{products.length}</NiceBadge>
           </div>
 
-          <div className="bg-gray-900 p-4 rounded text-sm">
-              <h4 className="font-semibold mb-2">Summary</h4>
-              <p className="mb-1">Product: <span className="font-bold">{product}</span></p>
-              <p className="mb-1">Horizon: <span className="font-bold">{forecast.length} days</span></p>
-              <p className="mb-2">Next prediction: <span className="font-bold">{preds[0] ?? '—'}</span></p>
-              {modelPath && <p className="break-words">Model: <span className="font-mono text-xs">{modelPath.split(/[\\/]/).pop()}</span></p>}
-
-              <div className="mt-4">
-                <h5 className="font-semibold mb-1">Forecast Values</h5>
-                <ul className="list-disc list-inside text-xs max-h-40 overflow-auto">
-                  {forecast.map(f => <li key={f.date}>{f.date}: {f.predicted}</li>)}
-                </ul>
-              </div>
-
-              <div className="mt-4 text-xs text-gray-400">
-                <div>Products available: <span className="font-semibold text-white">{products.length}</span></div>
-                <div>Products with history: <span className="font-semibold text-white">{products.filter(p => p.has_history).length}</span></div>
-              </div>
-            </div>
-        </div>
-      </div>
-
-      {allForecasts && (
-        <div className="mt-6 bg-gray-800 text-white rounded p-4">
-          <h3 className="text-lg font-semibold mb-2">All Product Forecasts</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-80 overflow-auto">
-            {Object.keys(allForecasts).length === 0 && <div className="text-sm">No saved forecasts found.</div>}
-            {Object.entries(allForecasts).map(([pname, pdata]) => (
-              <div key={pname} className="bg-gray-900 p-3 rounded text-xs">
-                <div className="font-semibold mb-1">{pname.replace(/_/g, ' ')}</div>
-                {pdata && pdata.forecast ? (
-                  <ul className="list-disc list-inside">
-                    {pdata.forecast.map(f => <li key={f.date}>{f.date}: {f.predicted}</li>)}
-                  </ul>
-                ) : (
-                  <div className="text-red-400">{pdata?.message || 'No data'}</div>
-                )}
-              </div>
+          <div className="space-y-2 max-h-[420px] overflow-auto">
+            {filtered.length === 0 && <div className="text-sm text-gray-300">No products</div>}
+            {filtered.map(p => (
+              <button key={p.name}
+                onClick={()=>setSelected(p.name)}
+                className={`w-full text-left p-3 rounded flex items-center justify-between hover:bg-gray-800 transition ${selected===p.name? 'ring-2 ring-indigo-500 bg-gray-800':''}`}>
+                <div>
+                  <div className="font-medium text-white">{p.name}</div>
+                  <div className="text-xs text-gray-300">{p.tag || ''}</div>
+                </div>
+                <div>
+                  <NiceBadge>View</NiceBadge>
+                </div>
+              </button>
             ))}
           </div>
-        </div>
-      )}
+        </aside>
+
+        <main className="lg:col-span-3">
+          <div className="bg-gray-800/90 rounded p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-xl font-semibold text-white">{selected || 'No product selected'}</h2>
+                <div className="text-sm text-gray-300">Horizon: {forecast.length} days</div>
+              </div>
+                      <div className="flex items-center gap-2">
+                      <button disabled={!selected || loading} onClick={()=>{ if(selected) { setError(null); axios.get(`/api/forecasts/save?product=${encodeURIComponent(selected)}`).then(()=>{}).catch(err=> setError(err.response?.data || err.message)); } }} className="px-3 py-2 bg-green-600 disabled:opacity-60 rounded text-white">Save</button>
+                      <button disabled={!selected || loading} onClick={()=>{ if(selected) { setError(null); axios.get(`/api/forecast?product=${encodeURIComponent(selected)}&days=7`).then(()=>{}).catch(err=> setError(err.response?.data || err.message)); } }} className="px-3 py-2 bg-blue-600 disabled:opacity-60 rounded text-white">Run</button>
+                    </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 bg-gray-900 p-3 rounded">
+                {loading && <div className="text-sm text-gray-300 mb-2">Loading...</div>}
+                {error && <div className="text-sm text-red-400 mb-2">Error: {String(error)}</div>}
+                <Plot
+                  data={[{ x: dates, y: preds, type: 'scatter', mode:'lines+markers', marker:{color:'#7dd3fc'}, line:{shape:'spline'} }]}
+                  layout={{paper_bgcolor:'#071022', plot_bgcolor:'#071022', font:{color:'#fff'}, title: selected ? `${selected} — Next ${forecast.length} days` : 'Select a product', xaxis:{title:'Date'}, yaxis:{title:'Predicted'}}}
+                  style={{width:'100%', height:320}}
+                />
+              </div>
+
+              <div className="bg-gray-900 p-3 rounded text-sm text-gray-200">
+                <div className="mb-3">
+                  <div className="text-xs text-gray-300">Summary</div>
+                  <div className="text-lg font-semibold text-white">{selected || '—'}</div>
+                </div>
+
+                <div className="space-y-2">
+                  <div>Next: <span className="font-bold">{preds[0] ?? '—'}</span></div>
+                  <div>Horizon: <span className="font-bold">{forecast.length} days</span></div>
+                </div>
+
+                <div className="mt-4">
+                  <h4 className="text-sm text-gray-300 mb-2">Values</h4>
+                  <ul className="text-xs max-h-40 overflow-auto list-disc list-inside text-gray-200">
+                    {forecast.map(f=> <li key={f.date}>{f.date}: {f.predicted}</li> )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {allForecasts && (
+            <div className="bg-gray-900 rounded p-4">
+              <h3 className="text-lg font-semibold text-white mb-3">All Product Forecasts</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {Object.entries(allForecasts).map(([p, data]) => (
+                  <div key={p} className="p-3 bg-gray-800 rounded">
+                    <div className="font-medium text-white">{p.replace(/_/g,' ')}</div>
+                    {data?.forecast ? (
+                      <div className="text-xs text-gray-300 mt-1">
+                        {data.forecast.slice(0,5).map(it=> <div key={it.date}>{it.date}: {it.predicted}</div>)}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-red-400">{data?.message || 'No data'}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
     </div>
   );
-};
+}
 
-export default DemandForecast;

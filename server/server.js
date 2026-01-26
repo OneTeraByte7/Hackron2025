@@ -85,7 +85,15 @@ app.get('/api/products', (req, res) => {
     record.has_history = historySet.has(name);
     // forecastSet contains safe file names (underscores). Create a safe version of display name to check.
     const safeName = String(name).replace(/[^a-z0-9]/gi, '_');
-    record.has_forecast = forecastSet.has(safeName) || forecastSet.has(name);
+    // Normalize for fuzzy matching: remove non-alphanum and compare substrings
+    const nameNorm = String(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+    let matched = false;
+    for (const f of forecastSet) {
+      const fNorm = String(f).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!fNorm) continue;
+      if (fNorm === nameNorm || nameNorm.includes(fNorm) || fNorm.includes(nameNorm)) { matched = true; break; }
+    }
+    record.has_forecast = matched || forecastSet.has(safeName) || forecastSet.has(name);
 
     if (difference_in_months <= 1) {
       record.tag = 'red';
@@ -230,24 +238,44 @@ let pyProcess = null;
 
 function spawnPython() {
   if (pyProcess && !pyProcess.killed) return pyProcess;
-  try {
-    const pythonExec = process.env.PYTHON || 'python';
-    pyProcess = spawn(pythonExec, ['flask_api.py'], {
-      cwd: __dirname,
-      env: { ...process.env, ML_API_PORT: ML_PORT },
-      stdio: 'inherit',
-    });
-    console.log('Spawned Python ML API (PID:', pyProcess.pid, 'on port', ML_PORT + ')');
-    pyProcess.on('exit', (code, signal) => {
-      console.warn('Python ML API exited', { code, signal });
+  const candidates = [];
+  if (process.env.PYTHON) candidates.push(process.env.PYTHON);
+  candidates.push('python', 'python3');
+
+  for (const pythonExec of candidates) {
+    try {
+      // spawn with pipes so Node can forward logs regardless of how the parent was started
+      const p = spawn(pythonExec, ['flask_api.py'], {
+        cwd: __dirname,
+        env: { ...process.env, ML_API_PORT: ML_PORT },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+
+      // if process failed to start synchronously, skip
+      if (!p || !p.pid) continue;
+
+      pyProcess = p;
+      console.log(`Spawned Python ML API (PID: ${pyProcess.pid}) on port ${ML_PORT}`);
+
+      // forward stdout/stderr from Python child to Node console
+      if (pyProcess.stdout) pyProcess.stdout.on('data', (chunk) => console.log(String(chunk).trim()));
+      if (pyProcess.stderr) pyProcess.stderr.on('data', (chunk) => console.error(String(chunk).trim()));
+
+      pyProcess.on('exit', (code, signal) => {
+        console.warn('Python ML API exited', { code, signal });
+        pyProcess = null;
+      });
+
+      return pyProcess;
+    } catch (e) {
+      // try next candidate
+      console.warn('Failed to spawn with', pythonExec, e && e.message ? e.message : e);
       pyProcess = null;
-    });
-    return pyProcess;
-  } catch (e) {
-    console.error('Failed to spawn Python ML API:', e.message || e);
-    pyProcess = null;
-    return null;
+    }
   }
+
+  console.error('All python spawn attempts failed; please ensure Python is installed and available in PATH');
+  return null;
 }
 
 // Ensure Python is started at server boot
