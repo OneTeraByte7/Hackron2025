@@ -1,0 +1,34 @@
+{
+  "product": "Yogurt",
+  "forecast": [
+    {
+      "date": "2025-03-26",
+      "predicted": 1.48
+    },
+    {
+      "date": "2025-03-27",
+      "predicted": 0.08
+    },
+    {
+      "date": "2025-03-28",
+      "predicted": 0.08
+    },
+    {
+      "date": "2025-03-29",
+      "predicted": 0.08
+    },
+    {
+      "date": "2025-03-30",
+      "predicted": 0.08
+    },
+    {
+      "date": "2025-03-31",
+      "predicted": 0.0
+    },
+    {
+      "date": "2025-04-01",
+      "predicted": 5.84
+    }
+  ],
+  "model_path": "f:\\Teckron2025\\server\\models\\forecast_Yogurt.joblib"
+}

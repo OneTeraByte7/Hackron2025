@@ -1,0 +1,34 @@
+{
+  "product": "Lettuce",
+  "forecast": [
+    {
+      "date": "2025-03-22",
+      "predicted": 2.08
+    },
+    {
+      "date": "2025-03-23",
+      "predicted": 0.88
+    },
+    {
+      "date": "2025-03-24",
+      "predicted": 2.28
+    },
+    {
+      "date": "2025-03-25",
+      "predicted": 1.4
+    },
+    {
+      "date": "2025-03-26",
+      "predicted": 2.28
+    },
+    {
+      "date": "2025-03-27",
+      "predicted": 1.4
+    },
+    {
+      "date": "2025-03-28",
+      "predicted": 2.28
+    }
+  ],
+  "model_path": "f:\\Teckron2025\\server\\models\\forecast_Lettuce.joblib"
+}

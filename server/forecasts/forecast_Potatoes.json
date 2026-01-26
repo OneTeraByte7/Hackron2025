@@ -1,0 +1,34 @@
+{
+  "product": "Potatoes",
+  "forecast": [
+    {
+      "date": "2025-03-23",
+      "predicted": 4.16
+    },
+    {
+      "date": "2025-03-24",
+      "predicted": 3.52
+    },
+    {
+      "date": "2025-03-25",
+      "predicted": 4.56
+    },
+    {
+      "date": "2025-03-26",
+      "predicted": 4.56
+    },
+    {
+      "date": "2025-03-27",
+      "predicted": 4.56
+    },
+    {
+      "date": "2025-03-28",
+      "predicted": 4.56
+    },
+    {
+      "date": "2025-03-29",
+      "predicted": 4.56
+    }
+  ],
+  "model_path": "f:\\Teckron2025\\server\\models\\forecast_Potatoes.joblib"
+}

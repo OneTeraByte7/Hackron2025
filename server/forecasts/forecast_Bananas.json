@@ -1,0 +1,34 @@
+{
+  "product": "Bananas",
+  "forecast": [
+    {
+      "date": "2025-03-21",
+      "predicted": 2.22
+    },
+    {
+      "date": "2025-03-22",
+      "predicted": 3.42
+    },
+    {
+      "date": "2025-03-23",
+      "predicted": 3.42
+    },
+    {
+      "date": "2025-03-24",
+      "predicted": 3.42
+    },
+    {
+      "date": "2025-03-25",
+      "predicted": 3.42
+    },
+    {
+      "date": "2025-03-26",
+      "predicted": 3.42
+    },
+    {
+      "date": "2025-03-27",
+      "predicted": 4.44
+    }
+  ],
+  "model_path": "f:\\Teckron2025\\server\\models\\forecast_Bananas.joblib"
+}

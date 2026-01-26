@@ -25,10 +25,16 @@ const DemandForecast = ({ product: initialProduct }) => {
             if (name && !all.find(x => x.name === name)) all.push({ name, has_history });
           });
         });
-        // keep only products that have history for the dropdown
-        const withHistory = all.filter(x => x.has_history);
-        setProducts(withHistory);
-        if (!initialProduct && withHistory.length) setProduct(withHistory[0].name);
+        // keep only products that have saved forecasts (prediction files) for the dropdown
+        // merge has_forecast flag into our items
+        const merged = all.map(a => {
+          // find original record to get has_forecast flag
+          const lookup = [...(res.data.red||[]), ...(res.data.yellow||[]), ...(res.data.green||[])].find(i => (i._displayName || i.product_name || i['Product Name'] || i.product || i.product_id) === a.name);
+          return { ...a, has_forecast: !!(lookup && lookup.has_forecast) };
+        });
+        const withForecast = merged.filter(x => x.has_forecast);
+        setProducts(withForecast);
+        if (!initialProduct && withForecast.length) setProduct(withForecast[0].name);
       })
       .catch(() => {});
   }, [initialProduct]);

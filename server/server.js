@@ -54,6 +54,22 @@ app.get('/api/products', (req, res) => {
     if (name) historySet.add(String(name));
   });
 
+  // Build a set of product names that have saved forecasts in server/forecasts
+  const forecastSet = new Set();
+  try {
+    if (fs.existsSync(FORECASTS_DIR)) {
+      const fns = fs.readdirSync(FORECASTS_DIR);
+      for (const fn of fns) {
+        if (!fn.startsWith('forecast_') || !fn.endsWith('.json')) continue;
+        const pname = fn.replace(/^forecast_/, '').replace(/\.json$/, '');
+        // stored filenames use safe names; keep raw string to compare with display names
+        forecastSet.add(pname);
+      }
+    }
+  } catch (e) {
+    console.warn('Could not read forecasts directory', e.message || e);
+  }
+
   productRecords.forEach(record => {
     const mfg_date = new Date(record.manufacturing_date);
     const exp_date = new Date(record.expiry_date);
@@ -63,10 +79,13 @@ app.get('/api/products', (req, res) => {
       (exp_date.getFullYear() - mfg_date.getFullYear()) * 12 +
       (exp_date.getMonth() - mfg_date.getMonth());
 
-    // Determine display name and whether it has history
+    // Determine display name and whether it has history or saved forecast
     const name = record.product_name || record['Product Name'] || record.product || record.product_id || '';
     record._displayName = name;
     record.has_history = historySet.has(name);
+    // forecastSet contains safe file names (underscores). Create a safe version of display name to check.
+    const safeName = String(name).replace(/[^a-z0-9]/gi, '_');
+    record.has_forecast = forecastSet.has(safeName) || forecastSet.has(name);
 
     if (difference_in_months <= 1) {
       record.tag = 'red';

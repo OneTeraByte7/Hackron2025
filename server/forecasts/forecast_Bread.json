@@ -1,17 +1,17 @@
 {
-  "product": "Milk",
+  "product": "Bread",
   "forecast": [
     {
       "date": "2025-03-25",
-      "predicted": 3.05
-    },
-    {
-      "date": "2025-03-26",
       "predicted": 0.0
     },
     {
-      "date": "2025-03-27",
+      "date": "2025-03-26",
       "predicted": 0.04
+    },
+    {
+      "date": "2025-03-27",
+      "predicted": 0.0
     },
     {
       "date": "2025-03-28",
@@ -27,8 +27,8 @@
     },
     {
       "date": "2025-03-31",
-      "predicted": 2.84
+      "predicted": 2.48
     }
   ],
-  "model_path": "f:\\Teckron2025\\server\\models\\forecast_Milk.joblib"
+  "model_path": "f:\\Teckron2025\\server\\models\\forecast_Bread.joblib"
 }
