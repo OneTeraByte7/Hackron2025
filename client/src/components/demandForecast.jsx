@@ -9,7 +9,7 @@ const DemandForecast = ({ product = 'Milk' }) => {
 
   useEffect(() => {
     setLoading(true);
-    axios.get(`http://localhost:6000/api/forecasts/latest?product=${encodeURIComponent(product)}`)
+    axios.get(`/api/forecasts/latest?product=${encodeURIComponent(product)}`)
       .then(res => {
         setForecast(res.data.forecast || []);
         setLoading(false);
