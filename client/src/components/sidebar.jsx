@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaHome, FaBoxOpen, FaExclamationTriangle, FaUpload, FaSignOutAlt, FaMapMarkerAlt ,FaDumpster } from "react-icons/fa";
+import { FaHome, FaBoxOpen, FaExclamationTriangle, FaUpload, FaSignOutAlt, FaMapMarkerAlt, FaChartLine, FaDumpster } from "react-icons/fa";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -74,6 +74,15 @@ const Sidebar = () => {
             >
               <FaBoxOpen className="mr-3" />
               <span>Products</span>
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => navigate('/demand')}
+              className="w-full flex items-center p-3 rounded-l-full hover:bg-greenCustom hover:text-white transition-all duration-300"
+            >
+              <FaChartLine className="mr-3" />
+              <span>Demand Forecast</span>
             </button>
           </li>
           
