@@ -3,40 +3,6 @@
 
 ![Hackron 2025](https://img.shields.io/badge/Techathon-2025-blue.svg) ![Status](https://img.shields.io/badge/Status-Completed-success.svg)
 
-## 🚀 Project Overview
-**Waste Management Automation for Dark Stores** is an AI-powered web application designed to optimize waste tracking, reduce food wastage, and enhance sustainability in dark stores (micro-fulfillment centers). The system automates waste categorization, provides predictive analytics, and integrates with IoT sensors to monitor and reduce waste in real-time.
-
-## 🏆 TROPHIES
-[![trophy](https://github-profile-trophy.vercel.app/?username=OneTeraByte7&theme=onedark)](https://github.com/ryo-ma/github-profile-trophy)
-
-
-## 🏆 Hackathon Submission
-- **Hackathon Name:** CodeClash2025
-- **Problem Statement:** Waste Management Automation for Dark Stores
-- **Team Name:** Coding Knights
-- **Project Duration:** 24 Hours
-
-## 🎯 Key Features
-✅ **AI-Powered Waste Classification**: Automatically detects and classifies waste using image recognition.
-✅ **Real-Time Waste Monitoring**: IoT-enabled sensors track waste levels and send alerts.
-✅ **Predictive Analytics**: Machine learning models analyze trends to reduce wastage.
-✅ **Inventory Expiry Alerts**: Prevents unnecessary waste by notifying about soon-to-expire products.
-✅ **User Dashboard**: Provides waste insights, analytics, and reports.
-✅ **Sustainability Score**: Tracks waste reduction performance over time.
-
-## 🛠️ Tech Stack
-### 🌐 Frontend:
-- React.js (with Tailwind CSS for UI styling)
-- Chart.js for data visualization
-
-### ⚙️ Backend:
-- Node.js with Express.js
-- MongoDB for database storage
-- Socket.io for real-time updates
-# 🗑️ Waste Management Automation for Dark Stores
-
-![Hackron 2025](https://img.shields.io/badge/Techathon-2025-blue.svg) ![Status](https://img.shields.io/badge/Status-Completed-success.svg)
-
 <img width="1024" height="361" alt="banner" src="https://github.com/user-attachments/assets/223b98ee-5162-42c4-b689-4eee1ec14710" />
 
 ## 🚀 Project Overview
