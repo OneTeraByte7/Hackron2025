@@ -53,9 +53,22 @@ def train_model_for_product(product_name, n_lags=14):
     if series is None:
         raise ValueError(f'No sales records for product: {product_name}')
     X, y = _create_lag_features(series, n_lags=n_lags)
+    model_path = os.path.join(MODELS_DIR, f"forecast_{_safe_name(product_name)}.joblib")
+
+    # If there are no training samples (e.g., too short history), save metadata
+    # instead of fitting a RandomForest which would raise an error.
+    if len(X) < 1:
+        meta = {
+            'insufficient_history': True,
+            'mean': float(series.mean()) if len(series) > 0 else 0.0,
+            'last_index': series.index.max() if len(series) > 0 else None,
+            'n_lags': n_lags,
+        }
+        joblib.dump(meta, model_path)
+        return model_path
+
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X, y)
-    model_path = os.path.join(MODELS_DIR, f"forecast_{_safe_name(product_name)}.joblib")
     joblib.dump({'model': model, 'last_index': series.index.max(), 'n_lags': n_lags}, model_path)
     return model_path
 
@@ -72,12 +85,29 @@ def predict(product_name, days=7):
         return {'error': 'no_data', 'message': f'No sales data for {product_name}'}
     if os.path.exists(model_path):
         meta = joblib.load(model_path)
+        # Support metadata-only files created when history is insufficient
+        if meta.get('insufficient_history'):
+            mean_val = float(meta.get('mean', 0.0))
+            last_idx = meta.get('last_index')
+            n_lags = meta.get('n_lags', n_lags)
+            # produce simple constant forecast equal to mean
+            last_date = series.index.max()
+            forecast_dates = [(last_date + timedelta(days=i + 1)).strftime('%Y-%m-%d') for i in range(days)]
+            preds = [max(0.0, mean_val) for _ in range(days)]
+            return {'product': product_name, 'forecast': [{'date': d, 'predicted': float(round(v, 3))} for d, v in zip(forecast_dates, preds)], 'model_path': model_path, 'note': 'insufficient_history'}
+
         model = meta['model']
         n_lags = meta.get('n_lags', 14)
     else:
         # train on demand
         train_model_for_product(product_name)
         meta = joblib.load(model_path)
+        if meta.get('insufficient_history'):
+            mean_val = float(meta.get('mean', 0.0))
+            last_date = series.index.max()
+            forecast_dates = [(last_date + timedelta(days=i + 1)).strftime('%Y-%m-%d') for i in range(days)]
+            preds = [max(0.0, mean_val) for _ in range(days)]
+            return {'product': product_name, 'forecast': [{'date': d, 'predicted': float(round(v, 3))} for d, v in zip(forecast_dates, preds)], 'model_path': model_path, 'note': 'insufficient_history'}
         model = meta['model']
         n_lags = meta.get('n_lags', 14)
 
@@ -119,3 +149,28 @@ if __name__ == '__main__':
     else:
         out = predict(args.product, days=args.days)
         print(out)
+
+
+def list_products():
+    """Return a sorted list of unique product names found in the sales CSV."""
+    df = _load_sales()
+    # support common column names
+    for col in ('Product Name', 'product_name', 'product'):
+        if col in df.columns:
+            return sorted(df[col].dropna().unique().tolist())
+    return []
+
+
+def predict_all(products=None, days=7):
+    """Return a mapping of product -> forecast dict for the provided products.
+    If products is None, all products from the sales CSV are used.
+    """
+    if products is None:
+        products = list_products()
+    out = {}
+    for p in products:
+        try:
+            out[p] = predict(p, days=days)
+        except Exception as e:
+            out[p] = {'error': 'server_error', 'message': str(e)}
+    return out

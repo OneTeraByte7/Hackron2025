@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from ml_forecast import predict
+from ml_forecast import predict, list_products, predict_all
 import os
 import json
 
@@ -62,6 +62,19 @@ def latest_forecast():
     with open(path, 'r', encoding='utf8') as f:
         data = json.load(f)
     return jsonify(data)
+
+
+
+@app.route('/api/forecasts/all')
+def forecasts_all():
+    """Return forecasts for all known products as a mapping product -> forecast dict."""
+    days = int(request.args.get('days', 7))
+    try:
+        # Use predict_all which will load products from the sales CSV if none provided
+        allf = predict_all(days=days)
+        return jsonify(allf)
+    except Exception as e:
+        return jsonify({'error': 'server_error', 'message': str(e)}), 500
 
 
 if __name__ == '__main__':

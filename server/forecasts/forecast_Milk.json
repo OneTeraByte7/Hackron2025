@@ -12,6 +12,22 @@
     {
       "date": "2025-03-27",
       "predicted": 0.04
+    },
+    {
+      "date": "2025-03-28",
+      "predicted": 0.04
+    },
+    {
+      "date": "2025-03-29",
+      "predicted": 0.04
+    },
+    {
+      "date": "2025-03-30",
+      "predicted": 0.04
+    },
+    {
+      "date": "2025-03-31",
+      "predicted": 2.84
     }
   ],
   "model_path": "F:\\Teckron2025\\server\\models\\forecast_Milk.joblib"

@@ -47,6 +47,13 @@ app.get('/api/products', (req, res) => {
   const yellow_products = [];
   const green_products = [];
 
+  // Build a set of product names that exist in sales records (history)
+  const historySet = new Set();
+  salesRecords.forEach(rec => {
+    const name = rec['Product Name'] || rec.product_name || rec.product || rec.product_id;
+    if (name) historySet.add(String(name));
+  });
+
   productRecords.forEach(record => {
     const mfg_date = new Date(record.manufacturing_date);
     const exp_date = new Date(record.expiry_date);
@@ -55,6 +62,11 @@ app.get('/api/products', (req, res) => {
     const difference_in_months =
       (exp_date.getFullYear() - mfg_date.getFullYear()) * 12 +
       (exp_date.getMonth() - mfg_date.getMonth());
+
+    // Determine display name and whether it has history
+    const name = record.product_name || record['Product Name'] || record.product || record.product_id || '';
+    record._displayName = name;
+    record.has_history = historySet.has(name);
 
     if (difference_in_months <= 1) {
       record.tag = 'red';
@@ -222,6 +234,46 @@ function spawnPython() {
 // Ensure Python is started at server boot
 spawnPython();
 
+
+// Global fetch helper used by proxy endpoints (tries global fetch, falls back to http/https)
+async function doFetch(u) {
+  try {
+    if (typeof fetch === 'function') return await fetch(u);
+  } catch (e) {
+    // ignore and fallback to http/https
+  }
+  return await new Promise((resolve, reject) => {
+    try {
+      const parsed = new URL(u);
+      const lib = parsed.protocol === 'https:' ? https : http;
+      const opts = {
+        hostname: parsed.hostname,
+        port: parsed.port,
+        path: parsed.pathname + (parsed.search || ''),
+        method: 'GET',
+        headers: {}
+      };
+      const r = lib.request(opts, (resp) => {
+        let data = '';
+        resp.setEncoding('utf8');
+        resp.on('data', chunk => data += chunk);
+        resp.on('end', () => {
+          const headersObj = {};
+          for (const [k, v] of Object.entries(resp.headers)) headersObj[k.toLowerCase()] = Array.isArray(v) ? v.join(',') : v;
+          resolve({
+            ok: resp.statusCode >= 200 && resp.statusCode < 300,
+            status: resp.statusCode,
+            text: async () => data,
+            headers: { get: (k) => headersObj[k.toLowerCase()] }
+          });
+        });
+      });
+      r.on('error', (err) => reject(err));
+      r.end();
+    } catch (err) { reject(err); }
+  });
+}
+
 function _safeName(name) {
   return String(name).replace(/[^a-z0-9]/gi, '_');
 }
@@ -357,6 +409,62 @@ app.get('/api/forecast', async (req, res) => {
     res.status(resp.status).type(contentType).send(body);
   } catch (err) {
     console.error('Proxy error /api/forecast:', err);
+    res.status(502).json({ error: 'bad_gateway', message: err.message || String(err) });
+  }
+});
+
+
+// Return forecasts for all products (tries Python API, then fallback to saved files)
+app.get('/api/forecasts/all', async (req, res) => {
+  try {
+    const days = req.query.days || '7';
+    const url = `http://127.0.0.1:${ML_PORT}/api/forecasts/all?days=${encodeURIComponent(days)}`;
+    let resp;
+    try {
+      resp = await doFetch(url);
+      const body = await resp.text();
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      if (resp.ok) return res.status(resp.status).type(contentType).send(body);
+      console.warn('Python API returned non-ok status for /api/forecasts/all', resp.status);
+    } catch (err) {
+      console.error('Initial fetch to Python API failed for /api/forecasts/all:', err.message || err);
+      // Try restarting Python and retry once
+      spawnPython();
+      await new Promise(r => setTimeout(r, 700));
+      try {
+        resp = await doFetch(url);
+        const body = await resp.text();
+        const contentType = resp.headers.get('content-type') || 'application/json';
+        if (resp.ok) return res.status(resp.status).type(contentType).send(body);
+        console.warn('Python API retry returned non-ok status for /api/forecasts/all', resp.status);
+      } catch (err2) {
+        console.error('Retry fetch to Python API failed for /api/forecasts/all:', err2.message || err2);
+      }
+    }
+
+    // Fallback: read all saved forecast files from server/forecasts
+    try {
+      const files = fs.existsSync(FORECASTS_DIR) ? fs.readdirSync(FORECASTS_DIR) : [];
+      const out = {};
+      for (const fn of files) {
+        if (!fn.startsWith('forecast_') || !fn.endsWith('.json')) continue;
+        try {
+          const txt = fs.readFileSync(path.join(FORECASTS_DIR, fn), 'utf8');
+          const json = JSON.parse(txt);
+          const pname = fn.replace(/^forecast_/, '').replace(/\.json$/, '');
+          out[pname] = json;
+        } catch (readErr) {
+          console.warn('Failed to read forecast file', fn, readErr);
+        }
+      }
+      if (Object.keys(out).length) return res.status(200).json(out);
+      return res.status(502).json({ error: 'bad_gateway', message: 'Python API unavailable and no saved forecast files' });
+    } catch (fileErr) {
+      console.error('Fallback read all forecasts failed:', fileErr);
+      return res.status(502).json({ error: 'bad_gateway', message: fileErr.message || String(fileErr) });
+    }
+  } catch (err) {
+    console.error('Proxy error /api/forecasts/all:', err);
     res.status(502).json({ error: 'bad_gateway', message: err.message || String(err) });
   }
 });
