@@ -57,7 +57,7 @@ const MapWithWasteChart = () => {
 
       mapRef.current = map;
     }
-  }, [updateChartData]);
+  }, [updateChartData, darkStores]);
 
   // Initialize chart
   useEffect(() => {
