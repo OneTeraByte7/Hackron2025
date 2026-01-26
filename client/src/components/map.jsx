@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import { Chart, PieController, ArcElement, Tooltip, Legend } from 'chart.js';
 import 'leaflet/dist/leaflet.css';
@@ -11,14 +11,26 @@ const MapWithWasteChart = () => {
   const [chartInstance, setChartInstance] = useState(null);
   const [showChart, setShowChart] = useState(false);
 
-  // Dark stores data
-  const darkStores = [
+  // Dark stores data (kept outside effect to avoid recreating on each render)
+  const darkStores = React.useMemo(() => [
     { name: 'Store A', lat: 18.5204, lng: 73.8567, waste: { organic: 30, recyclable: 40, nonRecyclable: 30 } },
     { name: 'Store B', lat: 18.5304, lng: 73.8467, waste: { organic: 20, recyclable: 50, nonRecyclable: 30 } },
     { name: 'Store C', lat: 18.5404, lng: 73.8367, waste: { organic: 25, recyclable: 35, nonRecyclable: 40 } },
     { name: 'Store D', lat: 18.5504, lng: 73.8267, waste: { organic: 10, recyclable: 60, nonRecyclable: 30 } },
     { name: 'Store E', lat: 18.5604, lng: 73.8167, waste: { organic: 40, recyclable: 30, nonRecyclable: 30 } }
-  ];
+  ], []);
+
+  // Update chart data (defined before effects to avoid TDZ when used in effects)
+  const updateChartData = useCallback((wasteData) => {
+    if (chartInstance) {
+      chartInstance.data.datasets[0].data = [
+        wasteData.organic,
+        wasteData.recyclable,
+        wasteData.nonRecyclable
+      ];
+      chartInstance.update();
+    }
+  }, [chartInstance]);
 
   useEffect(() => {
     if (!mapRef.current) {
@@ -45,7 +57,7 @@ const MapWithWasteChart = () => {
 
       mapRef.current = map;
     }
-  }, []);
+  }, [updateChartData]);
 
   // Initialize chart
   useEffect(() => {
@@ -71,17 +83,6 @@ const MapWithWasteChart = () => {
     }
   }, [chartRef, chartInstance]);
 
-  // Update chart data
-  const updateChartData = (wasteData) => {
-    if (chartInstance) {
-      chartInstance.data.datasets[0].data = [
-        wasteData.organic,
-        wasteData.recyclable,
-        wasteData.nonRecyclable
-      ];
-      chartInstance.update();
-    }
-  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
