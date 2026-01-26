@@ -1,4 +1,4 @@
-## Multi-stage Dockerfile for server (Node + Python deps) suitable for Render
+## Multi-stage Dockerfile for server (Node + Python deps) when build context is `server/`
 # Build stage: install build tools, compile native modules and install Python requirements
 FROM node:18-bullseye AS build
 
@@ -10,17 +10,17 @@ RUN apt-get update \
 
 WORKDIR /opt/app
 
-# Install server node deps
-COPY server/package*.json server/
-RUN cd server && npm ci --no-audit --no-fund
+# Install node deps using package files from the server context
+COPY package*.json ./
+RUN npm ci --no-audit --no-fund
 
-# Copy server source
-COPY server/ server/
+# Copy server source (build context is server/)
+COPY . .
 
 # Install Python requirements (if any)
-COPY server/requirements.txt server/requirements.txt
+COPY requirements.txt requirements.txt
 RUN python3 -m pip install --upgrade pip setuptools wheel \
-  && if [ -s server/requirements.txt ]; then python3 -m pip install -r server/requirements.txt; fi
+  && if [ -s requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
 
 # Production stage: smaller runtime image
 FROM node:18-bullseye-slim AS runtime
@@ -33,9 +33,9 @@ RUN apt-get update \
 WORKDIR /opt/app
 
 # Copy built server from build stage
-COPY --from=build /opt/app/server /opt/app/server
+COPY --from=build /opt/app /opt/app
 
-WORKDIR /opt/app/server
+WORKDIR /opt/app
 
 ENV NODE_ENV=production
 ENV PORT=5000
