@@ -67,3 +67,22 @@ body {
 	padding-left: 1rem;
 	padding-right: 1rem;
 }
+
+/* Dark themed scrollbar utilities */
+.dark-scrollbar {
+	scrollbar-width: thin; /* Firefox */
+	scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+.dark-scrollbar::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+.dark-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+.dark-scrollbar::-webkit-scrollbar-thumb {
+	background-color: rgba(255,255,255,0.12);
+	border-radius: 9999px;
+	border: 2px solid transparent;
+	background-clip: padding-box;
+}

@@ -93,7 +93,7 @@ export default function DemandForecast() {
             <NiceBadge>{products.length}</NiceBadge>
           </div>
 
-          <div className="space-y-2 max-h-[420px] overflow-auto">
+          <div className="space-y-2 max-h-[420px] overflow-auto dark-scrollbar">
             {filtered.length === 0 && <div className="text-sm text-gray-300">No products</div>}
             {filtered.map(p => (
               <button key={p.name}
