@@ -17,7 +17,7 @@ export default function DemandForecast() {
 
   useEffect(() => {
     let mounted = true;
-    axios.get('/api/products')
+    axios.get(`${process.env.REACT_APP_API_URL || 'https://hackron2025.onrender.com'}/api/products`)
       .then(res => {
         const list = [];
         ['red','yellow','green'].forEach(k => {
@@ -44,7 +44,7 @@ export default function DemandForecast() {
     if (!selected) return;
     setLoading(true);
     setError(null);
-    axios.get(`/api/forecasts/latest?product=${encodeURIComponent(selected)}`)
+    axios.get(`${process.env.REACT_APP_API_URL || 'https://hackron2025.onrender.com'}/api/forecasts/latest?product=${encodeURIComponent(selected)}`)
       .then(res => {
         setForecast(res.data.forecast || []);
         setLoading(false);
@@ -64,7 +64,7 @@ export default function DemandForecast() {
 
   const handleLoadAll = (days=7) => {
     setLoading(true);
-    axios.get(`/api/forecasts/all?days=${days}`)
+    axios.get(`${process.env.REACT_APP_API_URL || 'https://hackron2025.onrender.com'}/api/forecasts/all?days=${days}`)
       .then(res => { setAllForecasts(res.data || {}); setLoading(false); })
       .catch(err => { setError(err.response?.data || err.message); setAllForecasts(null); setLoading(false); });
   };
@@ -119,8 +119,8 @@ export default function DemandForecast() {
                 <div className="text-sm text-gray-300">Horizon: {forecast.length} days</div>
               </div>
                       <div className="flex items-center gap-2">
-                      <button disabled={!selected || loading} onClick={()=>{ if(selected) { setError(null); axios.get(`/api/forecasts/save?product=${encodeURIComponent(selected)}`).then(()=>{}).catch(err=> setError(err.response?.data || err.message)); } }} className="px-3 py-2 bg-green-600 disabled:opacity-60 rounded text-white">Save</button>
-                      <button disabled={!selected || loading} onClick={()=>{ if(selected) { setError(null); axios.get(`/api/forecast?product=${encodeURIComponent(selected)}&days=7`).then(()=>{}).catch(err=> setError(err.response?.data || err.message)); } }} className="px-3 py-2 bg-blue-600 disabled:opacity-60 rounded text-white">Run</button>
+                      <button disabled={!selected || loading} onClick={()=>{ if(selected) { setError(null); axios.get(`${process.env.REACT_APP_API_URL || 'https://hackron2025.onrender.com'}/api/forecasts/save?product=${encodeURIComponent(selected)}`).then(()=>{}).catch(err=> setError(err.response?.data || err.message)); } }} className="px-3 py-2 bg-green-600 disabled:opacity-60 rounded text-white">Save</button>
+                      <button disabled={!selected || loading} onClick={()=>{ if(selected) { setError(null); axios.get(`${process.env.REACT_APP_API_URL || 'https://hackron2025.onrender.com'}/api/forecast?product=${encodeURIComponent(selected)}&days=7`).then(()=>{}).catch(err=> setError(err.response?.data || err.message)); } }} className="px-3 py-2 bg-blue-600 disabled:opacity-60 rounded text-white">Run</button>
                     </div>
             </div>
 

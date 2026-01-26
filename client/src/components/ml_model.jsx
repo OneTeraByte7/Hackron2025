@@ -7,7 +7,7 @@ const WastePredictionChart = () => {
   const [mse, setMse] = useState(0);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/waste-predictions')
+    axios.get(`${process.env.REACT_APP_API_URL || 'https://hackron2025.onrender.com'}/api/waste-predictions`)
       .then(response => {
         setData(response.data.predictions);
         setMse(response.data.mse);

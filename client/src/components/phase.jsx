@@ -14,7 +14,7 @@ const Phase = () => {
             try {
                 setLoading(true);
                 setError('');
-                const response = await axios.get('http://localhost:5000/api/products');
+                const response = await axios.get(`${process.env.REACT_APP_API_URL || 'https://hackron2025.onrender.com'}/api/products`);
                 console.log("API Response:", response.data);
 
                 // Destructure response safely

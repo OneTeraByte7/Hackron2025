@@ -11,7 +11,7 @@ const Products = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/analyze")
+      .get(`${process.env.REACT_APP_API_URL || 'https://hackron2025.onrender.com'}/api/analyze`)
       .then((response) => {
         const { correlations, predictedSales, salesData } = response.data;
         setCorrelations(correlations);
