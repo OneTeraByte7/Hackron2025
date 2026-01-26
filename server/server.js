@@ -6,6 +6,7 @@ import brain from 'brain.js';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { spawn } from 'child_process';
 
 dotenv.config();
 
@@ -187,6 +188,137 @@ app.get('/api/visualizations', (req, res) => {
   res.json({ figSales, figWaste, figRecycling, figInventory });
 });
 
+
+// Proxy endpoints to Python ML API (avoid CORS issues by same-origin requests)
+const ML_PORT = process.env.ML_API_PORT || '6000';
+
+// Track Python child process so we can restart it if needed
+let pyProcess = null;
+
+function spawnPython() {
+  if (pyProcess && !pyProcess.killed) return pyProcess;
+  try {
+    const pythonExec = process.env.PYTHON || 'python';
+    pyProcess = spawn(pythonExec, ['flask_api.py'], {
+      cwd: __dirname,
+      env: { ...process.env, ML_API_PORT: ML_PORT },
+      stdio: 'inherit',
+    });
+    console.log('Spawned Python ML API (PID:', pyProcess.pid, 'on port', ML_PORT + ')');
+    pyProcess.on('exit', (code, signal) => {
+      console.warn('Python ML API exited', { code, signal });
+      pyProcess = null;
+    });
+    return pyProcess;
+  } catch (e) {
+    console.error('Failed to spawn Python ML API:', e.message || e);
+    pyProcess = null;
+    return null;
+  }
+}
+
+// Ensure Python is started at server boot
+spawnPython();
+
+function _safeName(name) {
+  return String(name).replace(/[^a-z0-9]/gi, '_');
+}
+
+const FORECASTS_DIR = path.join(__dirname, 'forecasts');
+
+app.get('/api/forecasts/latest', async (req, res) => {
+  try {
+    const qs = new URLSearchParams(req.query).toString();
+    const url = `http://127.0.0.1:${ML_PORT}/api/forecasts/latest?${qs}`;
+    let resp;
+    try {
+      resp = await fetch(url);
+      const body = await resp.text();
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      // If Python returned 200, forward it
+      if (resp.ok) return res.status(resp.status).type(contentType).send(body);
+      // otherwise fall through to file fallback
+      console.warn('Python API returned non-ok status', resp.status);
+    } catch (err) {
+      console.error('Initial fetch to Python API failed:', err.message || err);
+      // Try restarting Python and retry once
+      spawnPython();
+      await new Promise(r => setTimeout(r, 700));
+      try {
+        resp = await fetch(url);
+        const body = await resp.text();
+        const contentType = resp.headers.get('content-type') || 'application/json';
+        if (resp.ok) return res.status(resp.status).type(contentType).send(body);
+        console.warn('Python API retry returned non-ok status', resp.status);
+      } catch (err2) {
+        console.error('Retry fetch to Python API failed:', err2.message || err2);
+      }
+    }
+
+    // Fallback: try to read the saved forecast JSON from server/forecasts
+    try {
+      const product = req.query.product || 'unknown';
+      const fname = `forecast_${_safeName(product)}.json`;
+      const fpath = path.join(FORECASTS_DIR, fname);
+      if (fs.existsSync(fpath)) {
+        const data = fs.readFileSync(fpath, 'utf8');
+        return res.status(200).type('application/json').send(data);
+      }
+      return res.status(502).json({ error: 'bad_gateway', message: 'Python API unavailable and no saved forecast file' });
+    } catch (fileErr) {
+      console.error('Fallback file read failed:', fileErr);
+      return res.status(502).json({ error: 'bad_gateway', message: fileErr.message || String(fileErr) });
+    }
+  } catch (err) {
+    console.error('Proxy error /api/forecasts/latest:', err);
+    res.status(502).json({ error: 'bad_gateway', message: err.message || String(err) });
+  }
+});
+
+app.get('/api/forecasts/save', async (req, res) => {
+  try {
+    const qs = new URLSearchParams(req.query).toString();
+    const url = `http://127.0.0.1:${ML_PORT}/api/forecasts/save?${qs}`;
+    let resp;
+    try {
+      resp = await fetch(url);
+    } catch (err) {
+      console.error('Initial fetch to Python API failed:', err.message || err);
+      spawnPython();
+      await new Promise(r => setTimeout(r, 700));
+      resp = await fetch(url);
+    }
+    const body = await resp.text();
+    const contentType = resp.headers.get('content-type') || 'application/json';
+    res.status(resp.status).type(contentType).send(body);
+  } catch (err) {
+    console.error('Proxy error /api/forecasts/save:', err);
+    res.status(502).json({ error: 'bad_gateway', message: err.message || String(err) });
+  }
+});
+
+app.get('/api/forecast', async (req, res) => {
+  try {
+    const qs = new URLSearchParams(req.query).toString();
+    const url = `http://127.0.0.1:${ML_PORT}/api/forecast?${qs}`;
+    let resp;
+    try {
+      resp = await fetch(url);
+    } catch (err) {
+      console.error('Initial fetch to Python API failed:', err.message || err);
+      spawnPython();
+      await new Promise(r => setTimeout(r, 700));
+      resp = await fetch(url);
+    }
+    const body = await resp.text();
+    const contentType = resp.headers.get('content-type') || 'application/json';
+    res.status(resp.status).type(contentType).send(body);
+  } catch (err) {
+    console.error('Proxy error /api/forecast:', err);
+    res.status(502).json({ error: 'bad_gateway', message: err.message || String(err) });
+  }
+});
+
 // Sample data API for testing/demo
 const sampleData = [
   { price: 10.5, weight: 500, manufacturing_date: '2024-01-01', expiry_date: '2024-04-01' },
@@ -210,6 +342,30 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on port ${port}`);
-});
+// Launch the Python ML API alongside the Node server
+const pythonExec = process.env.PYTHON || 'python';
+try {
+  const py = spawn(pythonExec, ['flask_api.py'], {
+    cwd: __dirname,
+    env: { ...process.env, ML_API_PORT: process.env.ML_API_PORT || '6000' },
+    stdio: 'inherit',
+  });
+
+  // Ensure child process is killed when the Node process exits
+  const cleanup = () => {
+    try { py.kill(); } catch (e) {}
+  };
+  process.on('exit', cleanup);
+  process.on('SIGINT', () => { cleanup(); process.exit(); });
+  process.on('SIGTERM', () => { cleanup(); process.exit(); });
+
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server is running on port ${port}`);
+    console.log(`Spawned Python ML API (PID: ${py.pid}) on port ${process.env.ML_API_PORT || '6000'}`);
+  });
+} catch (err) {
+  console.error('Failed to start Python ML API:', err);
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server is running on port ${port} (no Python API)`);
+  });
+}
