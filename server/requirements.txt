@@ -1,4 +1,8 @@
 pandas
+scikit-learn
+flask
+joblib
+matplotlib
 dash
 plotly
-done
+flask-cors
