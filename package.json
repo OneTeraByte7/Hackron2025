@@ -1,0 +1,12 @@
+{
+  "name": "hackron2025-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "concurrently \"npm:start --prefix server\" \"npm:start --prefix client\"",
+    "dev": "concurrently \"npm:dev --prefix server\" \"npm:start --prefix client\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
