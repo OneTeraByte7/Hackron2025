@@ -90,7 +90,10 @@ const LandingPage = () => {
               <div className="text-sm text-gray-400">© {new Date().getFullYear()} StoreAuto</div>
             </div>
           </div>
-          <div className="text-sm text-gray-400">Made with care — track inventory, reduce waste.</div>
+          <div className="text-sm text-gray-400">
+            <div>Made with care — track inventory, reduce waste.</div>
+            <div className="mt-1">Product Owner: <span className="font-semibold">Soham J Suryawanshi</span></div>
+          </div>
         </div>
       </footer>
     </div>
